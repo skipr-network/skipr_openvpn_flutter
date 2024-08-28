@@ -240,6 +240,14 @@ class OpenVPN {
         .then((value) => value ?? false);
   }
 
+  ///Check ios vpn configuration installed status [true] if already installed,
+  /// [false] if not
+  Future<bool> isVPNConfigInstalledIOS() async {
+    return _channelControl
+        .invokeMethod("is_config_installed")
+        .then((value) => value ?? false);
+  }
+
   ///Sometimes config script has too many Remotes, it cause ANR in several devices,
   ///This happened because the plugin check every remote and somehow affected the UI to freeze
   ///

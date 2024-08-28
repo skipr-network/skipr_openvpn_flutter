@@ -24,6 +24,11 @@ public class SwiftOpenVPNFlutterPlugin: NSObject, FlutterPlugin {
         vpnStageE.setStreamHandler(StageHandler())
         vpnControlM.setMethodCallHandler({(call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
             switch call.method {
+            case "is_config_installed":
+                SwiftOpenVPNFlutterPlugin.utils.isConfigInstalled(completion: {(value:Bool) -> Void in
+                    result(value)
+                })
+                break;
             case "status":
                 SwiftOpenVPNFlutterPlugin.utils.getTraffictStats()
                 result(UserDefaults.init(suiteName: SwiftOpenVPNFlutterPlugin.utils.groupIdentifier)?.string(forKey: "connectionUpdate"))
@@ -373,26 +378,30 @@ class VPNUtils {
     @available(iOS 14.0, *)
     func stopVPN() {
         
-        self.providerManager.isOnDemandEnabled = false
-        self.providerManager.saveToPreferences();
-        self.providerManager.connection.stopVPNTunnel();
-        
-        NEDNSSettingsManager.shared().loadFromPreferences { error in
-            if let error = error {
-                // Handle error loading preferences
-                return
-            }
-            
-            // Check if custom DNS settings are currently active
-            if NEDNSSettingsManager.shared().dnsSettings != nil {
-                // Remove any custom DNS settings (this should revert to system defaults)
-                NEDNSSettingsManager.shared().dnsSettings = nil
+        isConfigInstalled(completion: {(value:Bool) -> Void in
+            if(value) {
+                self.providerManager.isOnDemandEnabled = false
+                self.providerManager.saveToPreferences();
+                self.providerManager.connection.stopVPNTunnel();
+                
+                NEDNSSettingsManager.shared().loadFromPreferences { error in
+                    if let error = error {
+                        // Handle error loading preferences
+                        return
+                    }
+                    
+                    // Check if custom DNS settings are currently active
+                    if NEDNSSettingsManager.shared().dnsSettings != nil {
+                        // Remove any custom DNS settings (this should revert to system defaults)
+                        NEDNSSettingsManager.shared().dnsSettings = nil
 
-                NEDNSSettingsManager.shared().saveToPreferences { error in
-                    if let error = error {}
+                        NEDNSSettingsManager.shared().saveToPreferences { error in
+                            if let error = error {}
+                        }
+                    }
                 }
             }
-        }
+        })
         
         stopDNSProxy()
         // Clear the network settings
@@ -432,6 +441,40 @@ class VPNUtils {
             // some error
             }
         }
+    }
+    
+    func isConfigInstalled(completion: @escaping (Bool) -> Void){
+        
+        var installed = true
+        
+        print("Checking if config is installed")
+        
+        print("Connecting status :: \(self.providerManager.connection.status)")
+        
+        if(self.providerManager.connection.status == NEVPNStatus.invalid){
+            
+            print("Connection status is invalid")
+            
+            installed = false
+            completion(installed)
+        } else {
+            print("Loading from preferences")
+            NETunnelProviderManager.loadAllFromPreferences { (managers, error)  in
+                if error == nil {
+                    print("Error nil, Managers : \(managers?.count ?? 0)")
+                    installed = !(managers?.isEmpty ?? true)
+                    print("Is installed according to config :: \(installed)")
+                } else {
+                    print("Error, so not installed")
+                    installed = false
+                }
+                completion(installed)
+            }
+        }
+        
+//        print("Is Config installed :: \(installed)")
+        
+//        return installed
     }
 }
 
