@@ -444,37 +444,21 @@ class VPNUtils {
     }
     
     func isConfigInstalled(completion: @escaping (Bool) -> Void){
-        
         var installed = true
-        
-        print("Checking if config is installed")
-        
-        print("Connecting status :: \(self.providerManager.connection.status)")
-        
+
         if(self.providerManager.connection.status == NEVPNStatus.invalid){
-            
-            print("Connection status is invalid")
-            
             installed = false
             completion(installed)
         } else {
-            print("Loading from preferences")
             NETunnelProviderManager.loadAllFromPreferences { (managers, error)  in
                 if error == nil {
-                    print("Error nil, Managers : \(managers?.count ?? 0)")
                     installed = !(managers?.isEmpty ?? true)
-                    print("Is installed according to config :: \(installed)")
                 } else {
-                    print("Error, so not installed")
                     installed = false
                 }
                 completion(installed)
             }
         }
-        
-//        print("Is Config installed :: \(installed)")
-        
-//        return installed
     }
 }
 
